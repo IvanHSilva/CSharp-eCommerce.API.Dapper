@@ -1,16 +1,46 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using eCommerce.API.Dapper.Models;
+using eCommerce.API.Dapper.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using RouteAttribute = Microsoft.AspNetCore.Mvc.RouteAttribute;
 
 namespace eCommerce.API.Dapper.Controllers {
-    [Route("api/[controller")]
+    [Route("api/[controller]")]
     [ApiController]
-    public class UsersController {
+    public class UsersController : ControllerBase {
 
+        private IUserRepository _repository;
+
+        public UsersController() {
+            _repository = new UserRepository();
+        }
+
+        [HttpGet]
+        public IActionResult Get() {
+            // Ok converts a object in json format
+            return Ok(_repository.GetUsers()); 
+        }
+
+        [HttpGet("{id}")]
+        public IActionResult Get(int id) {
+            User user = _repository.GetUser(id);
+            if (user == null) return NotFound(); else return Ok(user);
+        }
+
+        [HttpPost]
+        public IActionResult Insert([FromBody] User user) {
+            _repository.InsertUser(user);
+            return Ok(user);
+        }
+
+        [HttpPut]
+        public IActionResult Update([FromBody] User user) {
+            _repository.UpdateUser(user);
+            return Ok(user);
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id) {
+            _repository.DeleteUser(id);
+            return Ok();
+        }
     }
 }

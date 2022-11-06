@@ -22,6 +22,8 @@ namespace eCommerce.API.Dapper.Repositories {
         }
 
         public void InsertUser(User user) {
+            User lastUser = _dbUsers.LastOrDefault();
+            if (lastUser == null) user.Id = 1; else user.Id = lastUser.Id + 1;
             _dbUsers.Add(user);
         }
 
