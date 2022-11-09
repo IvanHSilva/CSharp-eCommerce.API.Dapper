@@ -9,7 +9,9 @@ namespace eCommerce.API.Dapper.Repositories {
     public class UserRepository : IUserRepository {
 
         private IDbConnection _connection;
-        private string _command;
+        private string _command = "SELECT Id, Nome AS Name, Email, Sexo AS Gender, RG, CPF, "
+        + "Filiacao AS Filiation, Situacao AS Situation, DataCad AS RegDate FROM Usuarios";
+
 
         public UserRepository() {
             _connection = new SqlConnection("Data Source=SERVIDOR\\SQLSERVER;Initial Catalog=eCommerce;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False");
@@ -17,21 +19,19 @@ namespace eCommerce.API.Dapper.Repositories {
 
         //Dapper - MER <-> POO
         public List<User> GetUsers() {
-            _command = "SELECT Id, Nome AS Name, Email, Sexo AS Gender, RG, CPF, ";
-            _command += "Filiacao AS Filiation, Situacao AS Situation, DataCad AS RegDate FROM Usuarios";
             return _connection.Query<User>(_command).ToList();
         }
 
         public User GetUser(int id) {
-            _command = "SELECT Id, Nome AS Name, Email, Sexo AS Gender, RG, CPF, Filiacao AS Filiation, ";
-            _command += "Situacao AS Situation, DataCad AS RegDate FROM Usuarios WHERE Id = @Id";
+            _command += " WHERE Id = @Id";
             return _connection.QueryFirstOrDefault<User>(_command, new { Id = id });
         }
 
         public void InsertUser(User user) {
-            User lastUser = _dbUsers.LastOrDefault();
-            if (lastUser == null) user.Id = 1; else user.Id = lastUser.Id + 1;
-            _dbUsers.Add(user);
+            _command = "INSERT INTO Usuarios (Nome, EMail, Sexo, RG, CPF, Filiacao, Situacao, DataCad) ";
+            _command += "VALUES (@Name, @EMail, @Gender, @RG, @CPF, @Filiation, @Situation, @RegDate); ";
+            _command += "SELECT CAST(SCOPE_IDENTITY() AS INT);";
+            user.Id = _connection.Query<int>(_command, user).Single();
         }
 
         public void UpdateUser(User user) {
