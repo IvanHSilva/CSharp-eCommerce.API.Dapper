@@ -1,9 +1,17 @@
 ﻿using eCommerce.API.Dapper.Models;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
 
 namespace eCommerce.API.Dapper.Repositories {
     public class UserRepository : IUserRepository {
+
+        private IDbConnection _connection;
+        public UserRepository() {
+
+            _connection = new SqlConnection("Data Source=SERVIDOR\\SQLSERVER;Initial Catalog=eCommerce;Integrated Security=True;Connect Timeout=30;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False");
+        }
 
         private static List<User> _dbUsers = new List<User>() {
             new User(1, "José Rodrigues", "jrodrigues@gmail.com"),
