@@ -41,15 +41,8 @@ namespace eCommerce.API.Dapper.Repositories {
         }
 
         public void DeleteUser(int id) {
-            _dbUsers.Remove(_dbUsers.FirstOrDefault(u => u.Id == id));
+            _command = "DELETE FROM Usuarios  WHERE Id = @Id";
+            _connection.Execute(_command, new {Id = id});
         }
-
-        private static List<User> _dbUsers = new List<User>() {
-            new User(1, "José Rodrigues", "jrodrigues@gmail.com"),
-            new User(2, "Maria Teresa", "marite@gmail.com"),
-            new User(3, "Ronaldo Amaral", "roamaral@gmail.com"),
-            new User(4, "Ana Clarice Mendes", "anacmendes@gmail.com"),
-            new User(5, "Xavier Oliveria", "xaoliver@gmail.com"),
-        };
     }
 }
