@@ -35,8 +35,9 @@ namespace eCommerce.API.Dapper.Repositories {
         }
 
         public void UpdateUser(User user) {
-            _dbUsers.Remove(_dbUsers.FirstOrDefault(u => u.Id == user.Id));
-            _dbUsers.Add(user);
+            _command = "UPDATE Usuarios SET Nome = @Name, EMail = @EMail, Sexo = @Gender, RG = @RG, CPF = @CPF, ";
+            _command += "Filiacao = @Filiation, Situacao = @Situation, DataCad = @RegDate WHERE Id = @Id";
+            _connection.Execute(_command, user);
         }
 
         public void DeleteUser(int id) {
