@@ -1,9 +1,12 @@
-﻿using eCommerce.API.Dapper.Models;
+﻿using Dapper;
+using eCommerce.API.Dapper.Models;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
-using Dapper;
+using System.Reflection;
+using System.Xml.Linq;
 
 namespace eCommerce.API.Dapper.Repositories {
     public class UserRepository : IUserRepository {
@@ -21,10 +24,18 @@ namespace eCommerce.API.Dapper.Repositories {
         public List<User> GetUsers() {
             return _connection.Query<User>(_command).ToList();
         }
-
         public User GetUser(int id) {
-            _command += " WHERE Id = @Id";
-            return _connection.QueryFirstOrDefault<User>(_command, new { Id = id });
+            _command = "SELECT U.Id, Nome AS Name, Email, Sexo AS Gender, RG, CPF, Filiacao AS Filiation, ";
+            _command += "Situacao AS Situation, DataCad AS RegDate, C.Id AS ContId, C.UsuId, C.Telefone AS Phone, ";
+            _command += "C.Celular AS CellPhone FROM Usuarios AS U ";
+            _command += "LEFT JOIN Contatos AS C ON C.UsuId = U.Id ";
+            _command += " WHERE U.Id = @Id";
+            return _connection.Query<User, Contact, User>(_command,
+            (user, contact) => {
+                user.Contact = contact;
+                return user;
+            },
+                new { Id = id }, splitOn: "Id, UsuId").SingleOrDefault();
         }
 
         public void InsertUser(User user) {
@@ -42,7 +53,7 @@ namespace eCommerce.API.Dapper.Repositories {
 
         public void DeleteUser(int id) {
             _command = "DELETE FROM Usuarios  WHERE Id = @Id";
-            _connection.Execute(_command, new {Id = id});
+            _connection.Execute(_command, new { Id = id });
         }
     }
 }
