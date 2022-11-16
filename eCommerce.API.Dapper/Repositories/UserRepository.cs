@@ -5,13 +5,12 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Reflection;
-using System.Xml.Linq;
 
 namespace eCommerce.API.Dapper.Repositories {
     public class UserRepository : IUserRepository {
 
         private IDbConnection _connection;
+        private IDbTransaction _transaction;
         private string _command = "SELECT Id, Nome AS Name, Email, Sexo AS Gender, RG, CPF, "
         + "Filiacao AS Filiation, Situacao AS Situation, DataCad AS RegDate FROM Usuarios";
 
@@ -39,10 +38,30 @@ namespace eCommerce.API.Dapper.Repositories {
         }
 
         public void InsertUser(User user) {
-            _command = "INSERT INTO Usuarios (Nome, EMail, Sexo, RG, CPF, Filiacao, Situacao, DataCad) ";
-            _command += "VALUES (@Name, @EMail, @Gender, @RG, @CPF, @Filiation, @Situation, @RegDate); ";
-            _command += "SELECT CAST(SCOPE_IDENTITY() AS INT);";
-            user.Id = _connection.Query<int>(_command, user).Single();
+
+            _connection.Open();
+            _transaction = _connection.BeginTransaction();
+            try {
+                _command = "INSERT INTO Usuarios (Nome, EMail, Sexo, RG, CPF, Filiacao, Situacao, DataCad) ";
+                _command += "VALUES (@Name, @EMail, @Gender, @RG, @CPF, @Filiation, @Situation, @RegDate); ";
+                _command += "SELECT CAST(SCOPE_IDENTITY() AS INT);";
+                user.Id = _connection.Query<int>(_command, user, _transaction).Single();
+
+                if (user.Contact != null) {
+                    user.Contact.UserId = user.Id;
+                    _command = "INSERT INTO Contatos (UsuId, Telefone, Celular) ";
+                    _command += "VALUES (@UserId, @Phone, @CellPhone); ";
+                    _command += "SELECT CAST(SCOPE_IDENTITY() AS INT);";
+                    user.Contact.Id = _connection.Query<int>(_command, user.Contact, _transaction).Single();
+                }
+
+                _transaction.Commit();
+            } catch (Exception e) {
+                string error = e.Message;
+                _transaction.Rollback();
+            } finally {
+                _connection.Close();
+            }
         }
 
         public void UpdateUser(User user) {
