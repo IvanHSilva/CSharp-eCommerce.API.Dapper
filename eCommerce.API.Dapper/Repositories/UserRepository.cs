@@ -65,10 +65,29 @@ namespace eCommerce.API.Dapper.Repositories {
         }
 
         public void UpdateUser(User user) {
-            _command = "UPDATE Usuarios SET Nome = @Name, EMail = @EMail, Sexo = @Gender, RG = @RG, CPF = @CPF, ";
-            _command += "Filiacao = @Filiation, Situacao = @Situation, DataCad = @RegDate WHERE Id = @Id";
-            _connection.Execute(_command, user);
+
+            _connection.Open();
+            _transaction = _connection.BeginTransaction();
+            try {
+
+                _command = "UPDATE Usuarios SET Nome = @Name, EMail = @EMail, Sexo = @Gender, RG = @RG, CPF = @CPF, ";
+                _command += "Filiacao = @Filiation, Situacao = @Situation, DataCad = @RegDate WHERE Id = @Id";
+                _connection.Execute(_command, user, _transaction);
+
+                if (user.Contact != null) {
+                    _command = "UPDATE Contatos SET Telefone = @Phone, Celular = @CellPhone WHERE UsuId = @UserId";
+                    _connection.Execute(_command, user.Contact, _transaction);
+                }
+
+                _transaction.Commit();
+            } catch (Exception e) {
+                string error = e.Message;
+                _transaction.Rollback();
+            } finally {
+                _connection.Close();
+            }
         }
+
 
         public void DeleteUser(int id) {
             _command = "DELETE FROM Usuarios  WHERE Id = @Id";
