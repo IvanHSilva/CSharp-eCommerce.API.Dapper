@@ -21,20 +21,44 @@ namespace eCommerce.API.Dapper.Repositories {
 
         //Dapper - MER <-> POO
         public List<User> GetUsers() {
-            return _connection.Query<User>(_command).ToList();
+            //return _connection.Query<User>(_command).ToList();
+            List<User> users = new List<User>();
+
+            _command = "SELECT U.Id, Nome AS Name, Email, Sexo AS Gender, RG, CPF, Filiacao AS Filiation, ";
+            _command += "Situacao AS Situation, DataCad AS RegDate, C.Id, C.UsuId AS UserId, C.Telefone AS Phone, ";
+            _command += "C.Celular AS CellPhone, E.Id, E.UsuId AS UserId, E.Descricao AS Description, E.Endereco AS Street, E.Numero AS Number, ";
+            _command += "E.Complemento AS Comp, E.Bairro AS District, E.Cidade AS City, E.Estado as State, E.CEP AS ZipCode ";
+            _command += "FROM Usuarios AS U ";
+            _command += "LEFT JOIN Contatos AS C ON C.UsuId = U.Id ";
+            _command += "LEFT JOIN Enderecos AS E ON E.UsuId = U.Id";
+            //_command += " WHERE U.Id = @Id";
+
+            _connection.Query<User, Contact, Address, User>(_command,
+                (user, contact, address) => {
+                    if (users.SingleOrDefault(u => u.Id == user.Id) == null) {
+                        user.Addresses = new List<Address>();
+                        user.Contact = contact;
+                        users.Add(user);
+                    } else {
+                        user = users.SingleOrDefault(u => u.Id == user.Id);
+                    }
+                    user.Addresses.Add(address);
+                    return user;
+                }, splitOn: "UserId, Id, Id");
+            return users;
         }
         public User GetUser(int id) {
             _command = "SELECT U.Id, Nome AS Name, Email, Sexo AS Gender, RG, CPF, Filiacao AS Filiation, ";
-            _command += "Situacao AS Situation, DataCad AS RegDate, C.Id AS ContId, C.UsuId, C.Telefone AS Phone, ";
+            _command += "Situacao AS Situation, DataCad AS RegDate, C.Id, C.UsuId AS UserId, C.Telefone AS Phone, ";
             _command += "C.Celular AS CellPhone FROM Usuarios AS U ";
             _command += "LEFT JOIN Contatos AS C ON C.UsuId = U.Id ";
             _command += " WHERE U.Id = @Id";
             return _connection.Query<User, Contact, User>(_command,
-            (user, contact) => {
+            map: (user, contact) => {
                 user.Contact = contact;
                 return user;
             },
-                new { Id = id }, splitOn: "Id, UsuId").SingleOrDefault();
+            param: new { id }, splitOn: "UserId, Id").SingleOrDefault();
         }
 
         public void InsertUser(User user) {
