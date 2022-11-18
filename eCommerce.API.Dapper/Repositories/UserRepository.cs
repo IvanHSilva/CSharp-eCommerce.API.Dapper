@@ -48,17 +48,30 @@ namespace eCommerce.API.Dapper.Repositories {
             return users;
         }
         public User GetUser(int id) {
+            List<User> users = new List<User>();
+
             _command = "SELECT U.Id, Nome AS Name, Email, Sexo AS Gender, RG, CPF, Filiacao AS Filiation, ";
             _command += "Situacao AS Situation, DataCad AS RegDate, C.Id, C.UsuId AS UserId, C.Telefone AS Phone, ";
-            _command += "C.Celular AS CellPhone FROM Usuarios AS U ";
+            _command += "C.Celular AS CellPhone, E.Id, E.UsuId AS UserId, E.Descricao AS Description, E.Endereco AS Street, E.Numero AS Number, ";
+            _command += "E.Complemento AS Comp, E.Bairro AS District, E.Cidade AS City, E.Estado as State, E.CEP AS ZipCode ";
+            _command += "FROM Usuarios AS U ";
             _command += "LEFT JOIN Contatos AS C ON C.UsuId = U.Id ";
+            _command += "LEFT JOIN Enderecos AS E ON E.UsuId = U.Id";
             _command += " WHERE U.Id = @Id";
-            return _connection.Query<User, Contact, User>(_command,
-            map: (user, contact) => {
-                user.Contact = contact;
-                return user;
-            },
-            param: new { id }, splitOn: "UserId, Id").SingleOrDefault();
+
+            _connection.Query<User, Contact, Address, User>(_command,
+                (user, contact, address) => {
+                    if (users.SingleOrDefault(u => u.Id == user.Id) == null) {
+                        user.Addresses = new List<Address>();
+                        user.Contact = contact;
+                        users.Add(user);
+                    } else {
+                        user = users.SingleOrDefault(u => u.Id == user.Id);
+                    }
+                    user.Addresses.Add(address);
+                    return user;
+                }, param: new { id }, splitOn: "UserId, Id, Id");
+            return users.SingleOrDefault();
         }
 
         public void InsertUser(User user) {
@@ -77,6 +90,17 @@ namespace eCommerce.API.Dapper.Repositories {
                     _command += "VALUES (@UserId, @Phone, @CellPhone); ";
                     _command += "SELECT CAST(SCOPE_IDENTITY() AS INT);";
                     user.Contact.Id = _connection.Query<int>(_command, user.Contact, _transaction).Single();
+                }
+
+                if (user.Addresses != null && user.Addresses.Count > 0) {
+
+                    foreach (Address address in user.Addresses) {
+                        address.UserId = user.Id;
+                        _command = "INSERT INTO Enderecos (UsuId, Descricao, Endereco, Numero, Complemento, Bairro, Cidade, Estado, CEP) ";
+                        _command += "VALUES (@UserId, @Description, @Street, @Number, @Comp, @District, @City, @State, @ZipCode); ";
+                        _command += "SELECT CAST(scope_identity() AS int)";
+                        address.Id = _connection.Query<int>(_command, address, _transaction).Single();
+                    }
                 }
 
                 _transaction.Commit();
