@@ -127,6 +127,20 @@ namespace eCommerce.API.Dapper.Repositories {
                     _connection.Execute(_command, user.Contact, _transaction);
                 }
 
+                _command = "DELETE FROM Enderecos WHERE UsuId = @Id";
+                _connection.Execute(_command, user, _transaction);
+
+                if (user.Addresses != null && user.Addresses.Count > 0) {
+
+                    foreach (Address address in user.Addresses) {
+                        address.UserId = user.Id;
+                        _command = "INSERT INTO Enderecos (UsuId, Descricao, Endereco, Numero, Complemento, Bairro, Cidade, Estado, CEP) ";
+                        _command += "VALUES (@UserId, @Description, @Street, @Number, @Comp, @District, @City, @State, @ZipCode); ";
+                        _command += "SELECT CAST(scope_identity() AS int)";
+                        address.Id = _connection.Query<int>(_command, address, _transaction).Single();
+                    }
+                }
+
                 _transaction.Commit();
             } catch (Exception e) {
                 string error = e.Message;
