@@ -66,27 +66,41 @@ namespace eCommerce.API.Dapper.Repositories {
         public User GetUser(int id) {
             List<User> users = new List<User>();
 
-            _command = "SELECT U.Id, Nome AS Name, Email, Sexo AS Gender, RG, CPF, Filiacao AS Filiation, ";
+            _command = "SELECT U.Id, U.Nome AS Name, Email, Sexo AS Gender, RG, CPF, Filiacao AS Filiation, ";
             _command += "Situacao AS Situation, DataCad AS RegDate, C.Id, C.UsuId AS UserId, C.Telefone AS Phone, ";
             _command += "C.Celular AS CellPhone, E.Id, E.UsuId AS UserId, E.Descricao AS Description, E.Endereco AS Street, E.Numero AS Number, ";
-            _command += "E.Complemento AS Comp, E.Bairro AS District, E.Cidade AS City, E.Estado as State, E.CEP AS ZipCode ";
+            _command += "E.Complemento AS Comp, E.Bairro AS District, E.Cidade AS City, E.Estado as State, E.CEP AS ZipCode, ";
+            _command += "D.Id, D.Nome AS Name ";
             _command += "FROM Usuarios AS U ";
             _command += "LEFT JOIN Contatos AS C ON C.UsuId = U.Id ";
-            _command += "LEFT JOIN Enderecos AS E ON E.UsuId = U.Id";
+            _command += "LEFT JOIN Enderecos AS E ON E.UsuId = U.Id ";
+            _command += "LEFT JOIN UsuDeptos AS UD ON UD.UsuId = U.Id ";
+            _command += "LEFT JOIN Departamentos AS D ON UD.DeptoId = D.Id ";
             _command += " WHERE U.Id = @Id";
 
-            _connection.Query<User, Contact, Address, User>(_command,
-                (user, contact, address) => {
+            _connection.Query<User, Contact, Address, Department, User>(_command,
+                (user, contact, address, department) => {
+
                     if (users.SingleOrDefault(u => u.Id == user.Id) == null) {
+                        user.Departments = new List<Department>();
                         user.Addresses = new List<Address>();
                         user.Contact = contact;
                         users.Add(user);
                     } else {
                         user = users.SingleOrDefault(u => u.Id == user.Id);
                     }
-                    user.Addresses.Add(address);
+
+                    if (user.Addresses.SingleOrDefault(a => a.Id == address.Id) == null) {
+                        user.Addresses.Add(address);
+                    }
+
+                    if (department != null) {
+                        if (user.Departments.SingleOrDefault(d => d.Id == department.Id) == null) {
+                            user.Departments.Add(department);
+                        }
+                    }
                     return user;
-                }, param: new { id }, splitOn: "UserId, Id, Id");
+                }, param: new { id }, splitOn: "UserId, Id, Id, Id");
             return users.SingleOrDefault();
         }
 
@@ -118,6 +132,16 @@ namespace eCommerce.API.Dapper.Repositories {
                         address.Id = _connection.Query<int>(_command, address, _transaction).Single();
                     }
                 }
+
+                if (user.Departments != null && user.Departments.Count > 0) {
+
+                    foreach (Department department in user.Departments) {
+                        _command = "INSERT INTO UsuDeptos (UsuId, DeptoId) ";
+                        _command += "VALUES (@UserId, @DeptId)";
+                        _connection.Execute(_command, new { UserId = user.Id, DeptId = department.Id}, _transaction);
+                    }
+                }
+
 
                 _transaction.Commit();
             } catch (Exception e) {
