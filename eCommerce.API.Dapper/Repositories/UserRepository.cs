@@ -41,7 +41,7 @@ namespace eCommerce.API.Dapper.Repositories {
                 (user, contact, address, department) => {
 
                     if (users.SingleOrDefault(u => u.Id == user.Id) == null) {
-                        user.Departments = new List<Department>(); 
+                        user.Departments = new List<Department>();
                         user.Addresses = new List<Address>();
                         user.Contact = contact;
                         users.Add(user);
@@ -138,7 +138,7 @@ namespace eCommerce.API.Dapper.Repositories {
                     foreach (Department department in user.Departments) {
                         _command = "INSERT INTO UsuDeptos (UsuId, DeptoId) ";
                         _command += "VALUES (@UserId, @DeptId)";
-                        _connection.Execute(_command, new { UserId = user.Id, DeptId = department.Id}, _transaction);
+                        _connection.Execute(_command, new { UserId = user.Id, DeptId = department.Id }, _transaction);
                     }
                 }
 
@@ -178,6 +178,17 @@ namespace eCommerce.API.Dapper.Repositories {
                         _command += "VALUES (@UserId, @Description, @Street, @Number, @Comp, @District, @City, @State, @ZipCode); ";
                         _command += "SELECT CAST(scope_identity() AS int)";
                         address.Id = _connection.Query<int>(_command, address, _transaction).Single();
+                    }
+                }
+
+                _command = "DELETE FROM UsuDeptos WHERE UsuId = @Id";
+                _connection.Execute(_command, user, _transaction);
+
+                if (user.Departments != null && user.Departments.Count > 0) {
+                    foreach (Department department in user.Departments) {
+                        _command = "INSERT INTO UsuDeptos (UsuId, DeptoId) ";
+                        _command += "VALUES (@UserId, @DeptId)";
+                        _connection.Execute(_command, new { UserId = user.Id, DeptId = department.Id }, _transaction);
                     }
                 }
 
