@@ -1,9 +1,15 @@
-﻿using System;
+﻿using Dapper.Contrib.Extensions;
+using System;
 using System.Collections.Generic;
 
 namespace eCommerce.API.Dapper.Models {
+    [Table("Usuarios")]
+
     public class User {
+
+        [Key]
         public int Id { get; set; }
+        [System.ComponentModel.DataAnnotations.Schema.Column("Nome")]
         public string Name { get; set; }
         public string EMail { get; set; }
         public string Gender { get; set; }
