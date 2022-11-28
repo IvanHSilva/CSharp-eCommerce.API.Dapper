@@ -45,5 +45,19 @@ namespace eCommerce.API.Dapper.Controllers {
 
             return NotFound();
         }
+
+        [HttpGet("stored/users")]
+        public IActionResult StoredGet() {
+            //executa a Stored Procedure SelecionarUsuarios
+            IEnumerable<User> users = _connection.Query<User>("SelecionarUsuarios", commandType: CommandType.StoredProcedure);
+            return Ok(users);
+        }
+
+        [HttpGet("stored/users/{id}")]
+        public IActionResult StoredGet(int id) {
+            //_connection.Query<User>("exec SelecionarUsuario 1");
+            IEnumerable<User> user = _connection.Query<User>("SelecionarUsuario",new { Id = id }, commandType: CommandType.StoredProcedure);
+            return Ok(user);
+        }
     }
 }
